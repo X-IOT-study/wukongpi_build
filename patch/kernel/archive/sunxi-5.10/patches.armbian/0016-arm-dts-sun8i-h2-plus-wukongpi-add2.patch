@@ -1,0 +1,11 @@
+diff --git a/arch/arm/boot/dts/Makefile b/arch/arm/boot/dts/Makefile
+index d93f01dddc3f9f83ecd43d98a0c9db5a4162df98..583017d1cfa1d65de59afc5150ee1daf28aea81b 100644
+--- a/arch/arm/boot/dts/Makefile
++++ b/arch/arm/boot/dts/Makefile
+@@ -1183,5 +1183,6 @@ dtb-$(CONFIG_MACH_SUN8I) += \
+	sun8i-h2-plus-bananapi-m2-zero.dtb \
+	sun8i-h2-plus-libretech-all-h3-cc.dtb \
++	sun8i-h2-plus-wukongpi.dtb \
+	sun8i-h2-plus-orangepi-r1.dtb \
+	sun8i-h2-plus-orangepi-zero.dtb \
+	sun8i-h2-plus-sunvell-r69.dtb \

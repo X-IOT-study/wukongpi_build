@@ -9,15 +9,24 @@ improved_git() {
 	local retries=3
 	local delay=10
 	local count=1
-	while [ $count -lt $retries ]; do
-		$realgit "$@"
-		if [[ $? -eq 0 || -f .git/index.lock ]]; then
-			retries=0
-			break
+	local status=1
+
+	while [ $count -le $retries ]; do
+		# All repositories fetched by the build are public. Disable credential
+		# helpers and terminal prompts so a network failure cannot turn into an
+		# interactive GitHub username/password request.
+		GIT_TERMINAL_PROMPT=0 "$realgit" -c credential.helper= "$@"
+		status=$?
+		if [[ $status -eq 0 || -f .git/index.lock ]]; then
+			return 0
 		fi
-		let count=$count+1
-		sleep $delay
+		if [ $count -lt $retries ]; then
+			sleep $delay
+		fi
+		count=$((count + 1))
 	done
+
+	return $status
 
 }
 
@@ -230,7 +239,7 @@ fetch_from_repo() {
 	#  Then the target URL matches the local URL.
 
 	if [[ "$(git rev-parse --git-dir 2> /dev/null)" == ".git" &&
-	"$url" != *"$(git remote get-url origin | sed 's/^.*@//' | sed 's/^.*\/\///' 2> /dev/null)" ]]; then
+	"$url" != "$(git remote get-url origin 2> /dev/null)" ]]; then
 		display_alert "Remote URL does not match, removing existing local copy"
 		rm -rf .git ./*
 	fi
@@ -285,9 +294,9 @@ fetch_from_repo() {
 		# remote was updated, fetch and check out updates
 		display_alert "Fetching updates"
 		case $ref_type in
-			branch) improved_git fetch --depth 200 origin "${ref_name}" ;;
-			tag) improved_git fetch --depth 200 origin tags/"${ref_name}" ;;
-			head) improved_git fetch --depth 200 origin HEAD ;;
+			branch) improved_git fetch --depth 200 origin "${ref_name}" || exit_with_error "Unable to fetch Git source" "$url" ;;
+			tag) improved_git fetch --depth 200 origin tags/"${ref_name}" || exit_with_error "Unable to fetch Git source" "$url" ;;
+			head) improved_git fetch --depth 200 origin HEAD || exit_with_error "Unable to fetch Git source" "$url" ;;
 		esac
 
 		# commit type needs support for older git servers that doesn't support fetching id directly

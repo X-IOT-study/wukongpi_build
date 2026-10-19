@@ -40,6 +40,14 @@ function get_urls() {
 	echo "${urls[@]}"
 }
 
+# aria2 1.36 does not accept the socks5:// syntax used by ALL_PROXY. Git and
+# curl may support that variable, but passing it to aria2 aborts before any
+# URL is contacted. Keep HTTP(S) proxy variables available and ignore only
+# the incompatible all-proxy variables for aria2 downloads.
+aria2_download() {
+	env -u all_proxy -u ALL_PROXY aria2c "$@"
+}
+
 download_and_verify() {
 
 	local catalog=$1
@@ -89,7 +97,7 @@ download_and_verify() {
 		ln -sf "${SRC}/config/torrents/${filename}.asc" "${localdir}/${filename}.asc"
 	else
 		# download signature file
-		aria2c "${aria2_options[@]}" \
+		aria2_download "${aria2_options[@]}" \
 			--continue=false \
 			--dir="${localdir}" --out="${filename}.asc" \
 			$(get_urls "${catalog}" "${filename}.asc")
@@ -98,6 +106,7 @@ download_and_verify() {
 		if [[ $rc -ne 0 ]]; then
 			# Except `not found`
 			[[ $rc -ne 3 ]] && display_alert "Failed to download signature file. aria2 exit code:" "$rc" "wrn"
+			rm -f "${localdir}/${filename}.asc"
 			return $rc
 		fi
 
@@ -110,7 +119,7 @@ download_and_verify() {
 	if [[ ${USE_TORRENT} == "yes" ]]; then
 
 		display_alert "downloading using torrent network" "$filename"
-		aria2c "${aria2_options[@]}" \
+		aria2_download "${aria2_options[@]}" \
 			--follow-torrent=mem \
 			--dir="${localdir}" \
 			${torrent}
@@ -122,7 +131,7 @@ download_and_verify() {
 	# direct download if torrent fails
 	if [[ $direct != "no" ]]; then
 		display_alert "downloading using http(s) network" "$filename"
-		aria2c "${aria2_options[@]}" \
+		aria2_download "${aria2_options[@]}" \
 			--dir="${localdir}" --out="${filename}" \
 			$(get_urls "${catalog}" "${filename}")
 
@@ -170,7 +179,8 @@ download_and_verify() {
 
 		if [[ $verified != true ]]; then
 			rm -rf "${localdir}/${filename}"* # We also delete asc file
-			exit_with_error "verification failed"
+			display_alert "Rootfs/toolchain download verification failed" "$filename" "wrn"
+			return 1
 		fi
 
 	fi

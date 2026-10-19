@@ -58,8 +58,8 @@ index 000000000..1946268e2
 +#include <dt-bindings/pinctrl/sun4i-a10.h>
 +
 +/ {
-+	model = "Wukong Pi";
-+	compatible = "wukong,wukongpi", "allwinner,sun8i-h2-plus";
++	model = "WuKong Pi H3";
++	compatible = "wukong,wukongpi", "allwinner,sun8i-h3";
 +
 +	aliases {
 +		serial0 = &uart0;
